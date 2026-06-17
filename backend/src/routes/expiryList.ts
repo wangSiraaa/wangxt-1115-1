@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { query, queryOne, run, transaction } from '../dbHelper';
-import { generateId, generateNo, calcExpiryDays, isExpired } from '../utils';
+import { generateId, generateNo, calcExpiryDays, isExpired, calcExpiryGrade, getCategoryDefaultStrategy } from '../utils';
 import dayjs from 'dayjs';
 
 const router = Router();
@@ -44,19 +44,25 @@ router.post('/', async (req: Request, res: Response) => {
     if (!batch) continue;
     if (isExpired(batch.expiryDate)) continue;
     const product = await queryOne('SELECT * FROM products WHERE id = ?', [batch.productId]) as any;
+    const expiryDays = calcExpiryDays(batch.expiryDate);
+    const expiryGrade = calcExpiryGrade(expiryDays);
+    const disposeMethod = getCategoryDefaultStrategy(product?.category || '', product?.isRefrigerated || 0, expiryDays);
     validItems.push({
       batchId: item.batchId,
       productId: batch.productId,
       productName: product?.name,
       sku: product?.sku,
+      category: product?.category || '',
       batchNo: batch.batchNo,
       quantity: Math.min(item.quantity, batch.quantity),
       productionDate: batch.productionDate,
       expiryDate: batch.expiryDate,
-      expiryDays: calcExpiryDays(batch.expiryDate),
+      expiryDays,
       isRefrigerated: product?.isRefrigerated || 0,
       unitCost: batch.unitCost,
       basePrice: product?.basePrice || 0,
+      expiryGrade,
+      disposeMethod,
     });
   }
 
@@ -75,8 +81,8 @@ router.post('/', async (req: Request, res: Response) => {
     );
     for (const item of validItems) {
       await run(
-        'INSERT INTO expiry_list_items (id, listId, batchId, productId, productName, sku, batchNo, quantity, productionDate, expiryDate, expiryDays, isRefrigerated, unitCost, basePrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [generateId(), id, item.batchId, item.productId, item.productName, item.sku, item.batchNo, item.quantity, item.productionDate, item.expiryDate, item.expiryDays, item.isRefrigerated, item.unitCost, item.basePrice]
+        'INSERT INTO expiry_list_items (id, listId, batchId, productId, productName, sku, category, batchNo, quantity, productionDate, expiryDate, expiryDays, isRefrigerated, unitCost, basePrice, expiryGrade, disposeMethod) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [generateId(), id, item.batchId, item.productId, item.productName, item.sku, item.category, item.batchNo, item.quantity, item.productionDate, item.expiryDate, item.expiryDays, item.isRefrigerated, item.unitCost, item.basePrice, item.expiryGrade, item.disposeMethod]
       );
     }
   });
@@ -102,19 +108,25 @@ router.put('/:id', async (req: Request, res: Response) => {
       if (!batch) continue;
       if (isExpired(batch.expiryDate)) continue;
       const product = await queryOne('SELECT * FROM products WHERE id = ?', [batch.productId]) as any;
+      const expiryDays = calcExpiryDays(batch.expiryDate);
+      const expiryGrade = calcExpiryGrade(expiryDays);
+      const disposeMethod = getCategoryDefaultStrategy(product?.category || '', product?.isRefrigerated || 0, expiryDays);
       validItems.push({
         batchId: item.batchId,
         productId: batch.productId,
         productName: product?.name,
         sku: product?.sku,
+        category: product?.category || '',
         batchNo: batch.batchNo,
         quantity: Math.min(item.quantity, batch.quantity),
         productionDate: batch.productionDate,
         expiryDate: batch.expiryDate,
-        expiryDays: calcExpiryDays(batch.expiryDate),
+        expiryDays,
         isRefrigerated: product?.isRefrigerated || 0,
         unitCost: batch.unitCost,
         basePrice: product?.basePrice || 0,
+        expiryGrade,
+        disposeMethod,
       });
     }
 
@@ -122,8 +134,8 @@ router.put('/:id', async (req: Request, res: Response) => {
       await run('DELETE FROM expiry_list_items WHERE listId = ?', [req.params.id]);
       for (const item of validItems) {
         await run(
-          'INSERT INTO expiry_list_items (id, listId, batchId, productId, productName, sku, batchNo, quantity, productionDate, expiryDate, expiryDays, isRefrigerated, unitCost, basePrice) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-          [generateId(), req.params.id, item.batchId, item.productId, item.productName, item.sku, item.batchNo, item.quantity, item.productionDate, item.expiryDate, item.expiryDays, item.isRefrigerated, item.unitCost, item.basePrice]
+          'INSERT INTO expiry_list_items (id, listId, batchId, productId, productName, sku, category, batchNo, quantity, productionDate, expiryDate, expiryDays, isRefrigerated, unitCost, basePrice, expiryGrade, disposeMethod) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [generateId(), req.params.id, item.batchId, item.productId, item.productName, item.sku, item.category, item.batchNo, item.quantity, item.productionDate, item.expiryDate, item.expiryDays, item.isRefrigerated, item.unitCost, item.basePrice, item.expiryGrade, item.disposeMethod]
         );
       }
       if (remark !== undefined) {

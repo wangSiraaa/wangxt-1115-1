@@ -52,6 +52,9 @@ export interface ExpiryList {
   remark: string;
 }
 
+export type ExpiryGrade = 'critical' | 'warning' | 'normal';
+export type DisposeMethod = 'promotion' | 'allocation' | 'pending';
+
 export interface ExpiryListItem {
   id: string;
   listId: string;
@@ -67,6 +70,9 @@ export interface ExpiryListItem {
   isRefrigerated: number;
   unitCost: number;
   basePrice: number;
+  expiryGrade: ExpiryGrade;
+  disposeMethod: DisposeMethod;
+  category: string;
 }
 
 export interface Allocation {
@@ -98,6 +104,58 @@ export interface AllocationItem {
   isRefrigerated: number;
   unitCost: number;
   basePrice: number;
+  receivedQty: number;
+  lossQty: number;
+  pendingQty: number;
+  diffQty: number;
+  diffRemark: string;
+}
+
+export type SettleSegmentType = 'sellable' | 'loss' | 'pending_review';
+
+export interface SettleSegment {
+  id: string;
+  settlementId: string;
+  allocationItemId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  batchNo: string;
+  segmentType: SettleSegmentType;
+  quantity: number;
+  unitCost: number;
+  amount: number;
+  unitPrice: number;
+  reviewStatus: 'pending' | 'approved' | 'rejected';
+  reviewerId: string;
+  reviewerName: string;
+  reviewTime: string;
+  reviewRemark: string;
+}
+
+export interface BatchTrace {
+  id: string;
+  batchNo: string;
+  productId: string;
+  productName: string;
+  fromStoreId: string;
+  fromStoreName: string;
+  toStoreId: string;
+  toStoreName: string;
+  allocationId: string;
+  allocNo: string;
+  settlementId: string;
+  settleNo: string;
+  shippedQty: number;
+  receivedQty: number;
+  lossQty: number;
+  pendingQty: number;
+  unitCost: number;
+  lossAmount: number;
+  locked: number;
+  traceTime: string;
+  signDiff: number;
+  signDiffAmount: number;
 }
 
 export interface Settlement {

@@ -105,6 +105,7 @@ export async function initDatabase() {
       productId TEXT NOT NULL,
       productName TEXT,
       sku TEXT,
+      category TEXT,
       batchNo TEXT,
       quantity INTEGER NOT NULL,
       productionDate TEXT,
@@ -112,7 +113,9 @@ export async function initDatabase() {
       expiryDays INTEGER,
       isRefrigerated INTEGER DEFAULT 0,
       unitCost REAL DEFAULT 0,
-      basePrice REAL DEFAULT 0
+      basePrice REAL DEFAULT 0,
+      expiryGrade TEXT DEFAULT 'normal',
+      disposeMethod TEXT DEFAULT 'pending'
     );
 
     CREATE TABLE IF NOT EXISTS allocations (
@@ -143,7 +146,12 @@ export async function initDatabase() {
       quantity INTEGER NOT NULL,
       isRefrigerated INTEGER DEFAULT 0,
       unitCost REAL DEFAULT 0,
-      basePrice REAL DEFAULT 0
+      basePrice REAL DEFAULT 0,
+      receivedQty INTEGER DEFAULT 0,
+      lossQty INTEGER DEFAULT 0,
+      pendingQty INTEGER DEFAULT 0,
+      diffQty INTEGER DEFAULT 0,
+      diffRemark TEXT
     );
 
     CREATE TABLE IF NOT EXISTS settlements (
@@ -155,11 +163,59 @@ export async function initDatabase() {
       lossAmount REAL DEFAULT 0,
       finalAmount REAL DEFAULT 0,
       lossRate REAL DEFAULT 0,
+      sellableAmount REAL DEFAULT 0,
+      pendingAmount REAL DEFAULT 0,
+      lossLocked INTEGER DEFAULT 0,
       accountantId TEXT,
       accountantName TEXT,
       settleTime TEXT,
       status TEXT NOT NULL DEFAULT 'draft',
       remark TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS settle_segments (
+      id TEXT PRIMARY KEY,
+      settlementId TEXT NOT NULL,
+      allocationItemId TEXT NOT NULL,
+      productId TEXT NOT NULL,
+      productName TEXT,
+      sku TEXT,
+      batchNo TEXT,
+      segmentType TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      unitCost REAL DEFAULT 0,
+      amount REAL DEFAULT 0,
+      unitPrice REAL DEFAULT 0,
+      reviewStatus TEXT DEFAULT 'pending',
+      reviewerId TEXT,
+      reviewerName TEXT,
+      reviewTime TEXT,
+      reviewRemark TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS batch_traces (
+      id TEXT PRIMARY KEY,
+      batchNo TEXT NOT NULL,
+      productId TEXT NOT NULL,
+      productName TEXT,
+      fromStoreId TEXT NOT NULL,
+      fromStoreName TEXT,
+      toStoreId TEXT NOT NULL,
+      toStoreName TEXT,
+      allocationId TEXT NOT NULL,
+      allocNo TEXT,
+      settlementId TEXT,
+      settleNo TEXT,
+      shippedQty INTEGER DEFAULT 0,
+      receivedQty INTEGER DEFAULT 0,
+      lossQty INTEGER DEFAULT 0,
+      pendingQty INTEGER DEFAULT 0,
+      unitCost REAL DEFAULT 0,
+      lossAmount REAL DEFAULT 0,
+      locked INTEGER DEFAULT 0,
+      traceTime TEXT,
+      signDiff INTEGER DEFAULT 0,
+      signDiffAmount REAL DEFAULT 0
     );
   `);
   saveDb();

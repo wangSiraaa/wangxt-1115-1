@@ -1,5 +1,5 @@
 import request from '../utils/request';
-import type { Store, Product, Vehicle, User, InventoryBatch, ExpiryList, Allocation, Settlement } from '../types';
+import type { Store, Product, Vehicle, User, InventoryBatch, ExpiryList, Allocation, Settlement, BatchTrace } from '../types';
 
 export const storeApi = {
   getList: (params?: { type?: string }) => request.get<any, Store[]>('/api/base/stores', { params }),
@@ -34,13 +34,25 @@ export const expiryListApi = {
   delete: (id: string) => request.delete<any, void>(`/api/expiry-lists/${id}`),
 };
 
+export interface ReceiveItemInput {
+  id: string;
+  receivedQty: number;
+  lossQty: number;
+  pendingQty: number;
+  diffRemark?: string;
+}
+
 export const allocationApi = {
   getList: (params?: { listId?: string; status?: string; sourceStoreId?: string; targetStoreId?: string }) =>
     request.get<any, Allocation[]>('/api/allocations', { params }),
   getDetail: (id: string) => request.get<any, Allocation>(`/api/allocations/${id}`),
   create: (data: any) => request.post<any, Allocation>('/api/allocations', data),
-  updateStatus: (id: string, status: string) =>
-    request.put<any, Allocation>(`/api/allocations/${id}/status`, { status }),
+  updateStatus: (id: string, status: string, receiveItems?: ReceiveItemInput[]) =>
+    request.put<any, Allocation>(`/api/allocations/${id}/status`, { status, receiveItems }),
+  confirmReceive: (id: string, receiveItems: ReceiveItemInput[]) =>
+    request.post<any, Allocation>(`/api/allocations/${id}/confirm-receive`, { receiveItems }),
+  getTrace: (id: string) =>
+    request.get<any, BatchTrace[]>(`/api/allocations/${id}/trace`),
 };
 
 export const settlementApi = {
@@ -50,4 +62,14 @@ export const settlementApi = {
   create: (data: any) => request.post<any, Settlement>('/api/settlements', data),
   update: (id: string, data: any) => request.put<any, Settlement>(`/api/settlements/${id}`, data),
   confirm: (id: string) => request.post<any, Settlement>(`/api/settlements/${id}/confirm`),
+  reviewSegment: (id: string, data: {
+    segmentId: string;
+    reviewStatus: 'approved' | 'rejected';
+    reviewerId: string;
+    reviewerName: string;
+    reviewRemark?: string;
+    convertTo?: 'sellable' | 'loss';
+  }) => request.post<any, Settlement>(`/api/settlements/${id}/review-segment`, data),
+  getTrace: (allocationId: string) =>
+    request.get<any, { traces: BatchTrace[]; allocation: Allocation }>(`/api/settlements/trace/${allocationId}`),
 };

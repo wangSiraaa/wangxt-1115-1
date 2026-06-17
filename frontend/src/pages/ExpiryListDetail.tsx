@@ -67,30 +67,60 @@ export default function ExpiryListDetail() {
     settled: { color: 'green', text: '已结算' },
   };
 
+  const expiryGradeMap: Record<string, { color: string; text: string }> = {
+    critical: { color: 'red', text: '紧急(≤7天)' },
+    warning: { color: 'orange', text: '预警(8-15天)' },
+    normal: { color: 'green', text: '正常(>15天)' },
+  };
+
+  const disposeMethodMap: Record<string, { color: string; text: string }> = {
+    promotion: { color: 'magenta', text: '门店促销' },
+    allocation: { color: 'geekblue', text: '跨店调拨' },
+    pending: { color: 'default', text: '待决策' },
+  };
+
   const itemColumns = [
-    { title: 'SKU', dataIndex: 'sku', width: 120 },
-    { title: '商品名称', dataIndex: 'productName', width: 200 },
-    { title: '批次号', dataIndex: 'batchNo', width: 160 },
+    { title: 'SKU', dataIndex: 'sku', width: 100 },
+    { title: '商品名称', dataIndex: 'productName', width: 180 },
+    { title: '类别', dataIndex: 'category', width: 100 },
+    { title: '批次号', dataIndex: 'batchNo', width: 140 },
     {
       title: '冷藏',
       dataIndex: 'isRefrigerated',
-      width: 80,
+      width: 70,
       render: (v: number) => (v === 1 ? <Tag color="blue">冷藏</Tag> : '常温'),
     },
-    { title: '数量', dataIndex: 'quantity', width: 100 },
-    { title: '生产日期', dataIndex: 'productionDate', width: 120 },
-    { title: '到期日期', dataIndex: 'expiryDate', width: 120 },
+    { title: '数量', dataIndex: 'quantity', width: 80 },
+    { title: '到期日期', dataIndex: 'expiryDate', width: 110 },
     {
       title: '到期天数',
       dataIndex: 'expiryDays',
-      width: 100,
+      width: 90,
       render: (v: number) => {
         if (v <= 7) return <Tag color="red">{v}天</Tag>;
         if (v <= 15) return <Tag color="orange">{v}天</Tag>;
         return <Tag color="gold">{v}天</Tag>;
       },
     },
-    { title: '单位成本', dataIndex: 'unitCost', width: 100, render: (v: number) => `¥${v}` },
+    {
+      title: '保质期分级',
+      dataIndex: 'expiryGrade',
+      width: 120,
+      render: (v: string) => {
+        const s = expiryGradeMap[v] || { color: 'default', text: v };
+        return <Tag color={s.color}>{s.text}</Tag>;
+      },
+    },
+    {
+      title: '处置方式',
+      dataIndex: 'disposeMethod',
+      width: 110,
+      render: (v: string) => {
+        const s = disposeMethodMap[v] || { color: 'default', text: v };
+        return <Tag color={s.color}>{s.text}</Tag>;
+      },
+    },
+    { title: '单位成本', dataIndex: 'unitCost', width: 90, render: (v: number) => `¥${v}` },
   ];
 
   const allocColumns = [
@@ -171,7 +201,7 @@ export default function ExpiryListDetail() {
           rowKey="id"
           dataSource={detail.items || []}
           columns={itemColumns}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 1400 }}
           pagination={false}
         />
 

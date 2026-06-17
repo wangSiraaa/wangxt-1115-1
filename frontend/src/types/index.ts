@@ -56,6 +56,11 @@ export interface User {
   storeName: string;
 }
 
+export type ExpiryGrade = 'critical' | 'warning' | 'normal';
+export type DisposeMethod = 'promotion' | 'allocation' | 'pending';
+export type SettleSegmentType = 'sellable' | 'loss' | 'pending_review';
+export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+
 export interface ExpiryListItem {
   id: string;
   listId: string;
@@ -63,6 +68,7 @@ export interface ExpiryListItem {
   productId: string;
   productName: string;
   sku: string;
+  category: string;
   batchNo: string;
   quantity: number;
   productionDate: string;
@@ -71,6 +77,8 @@ export interface ExpiryListItem {
   isRefrigerated: number;
   unitCost: number;
   basePrice: number;
+  expiryGrade: ExpiryGrade;
+  disposeMethod: DisposeMethod;
 }
 
 export interface ExpiryList {
@@ -97,6 +105,11 @@ export interface AllocationItem {
   isRefrigerated: number;
   unitCost: number;
   basePrice: number;
+  receivedQty: number;
+  lossQty: number;
+  pendingQty: number;
+  diffQty: number;
+  diffRemark: string;
 }
 
 export interface Allocation {
@@ -119,6 +132,51 @@ export interface Allocation {
   targetStore?: Store;
 }
 
+export interface SettleSegment {
+  id: string;
+  settlementId: string;
+  allocationItemId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  batchNo: string;
+  segmentType: SettleSegmentType;
+  quantity: number;
+  unitCost: number;
+  amount: number;
+  unitPrice: number;
+  reviewStatus: ReviewStatus;
+  reviewerId: string;
+  reviewerName: string;
+  reviewTime: string;
+  reviewRemark: string;
+}
+
+export interface BatchTrace {
+  id: string;
+  batchNo: string;
+  productId: string;
+  productName: string;
+  fromStoreId: string;
+  fromStoreName: string;
+  toStoreId: string;
+  toStoreName: string;
+  allocationId: string;
+  allocNo: string;
+  settlementId: string;
+  settleNo: string;
+  shippedQty: number;
+  receivedQty: number;
+  lossQty: number;
+  pendingQty: number;
+  unitCost: number;
+  lossAmount: number;
+  locked: number;
+  traceTime: string;
+  signDiff: number;
+  signDiffAmount: number;
+}
+
 export interface Settlement {
   id: string;
   settleNo: string;
@@ -128,6 +186,9 @@ export interface Settlement {
   lossAmount: number;
   finalAmount: number;
   lossRate: number;
+  sellableAmount: number;
+  pendingAmount: number;
+  lossLocked: number;
   accountantId: string;
   accountantName: string;
   settleTime: string;
@@ -135,6 +196,8 @@ export interface Settlement {
   remark: string;
   allocation?: Allocation;
   allocItems?: AllocationItem[];
+  segments?: SettleSegment[];
+  traces?: BatchTrace[];
   sourceStore?: Store;
   targetStore?: Store;
 }
