@@ -59,7 +59,7 @@ export interface User {
 export type ExpiryGrade = 'critical' | 'warning' | 'normal';
 export type DisposeMethod = 'promotion' | 'allocation' | 'pending';
 export type SettleSegmentType = 'sellable' | 'loss' | 'pending_review';
-export type ReviewStatus = 'pending' | 'approved' | 'rejected';
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'converted';
 
 export interface ExpiryListItem {
   id: string;
@@ -144,12 +144,15 @@ export interface SettleSegment {
   quantity: number;
   unitCost: number;
   amount: number;
+  segmentAmount: number;
   unitPrice: number;
   reviewStatus: ReviewStatus;
   reviewerId: string;
   reviewerName: string;
   reviewTime: string;
   reviewRemark: string;
+  remark: string;
+  responsibleParty: string;
 }
 
 export interface BatchTrace {

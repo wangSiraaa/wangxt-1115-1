@@ -70,18 +70,5 @@ export function getProcessStrategyLabel(strategy: string): string {
   return labels[strategy] || strategy;
 }
 
-export function getCategoryDefaultStrategy(category: string, isRefrigerated: number, expiryDays: number): string {
-  if (isRefrigerated === 1 && expiryDays <= 3) {
-    return "promotion";
-  }
-  const dairyCategories = ["乳制品", "冷冻食品"];
-  if (dairyCategories.includes(category)) {
-    return expiryDays <= 7 ? "promotion" : "allocation";
-  }
-  const longShelfCategories = ["方便食品", "休闲食品", "饮料"];
-  if (longShelfCategories.includes(category)) {
-    return "allocation";
-  }
-  return "review";
-}
+
 

@@ -185,12 +185,15 @@ export async function initDatabase() {
       quantity INTEGER NOT NULL,
       unitCost REAL DEFAULT 0,
       amount REAL DEFAULT 0,
+      segmentAmount REAL DEFAULT 0,
       unitPrice REAL DEFAULT 0,
       reviewStatus TEXT DEFAULT 'pending',
       reviewerId TEXT,
       reviewerName TEXT,
       reviewTime TEXT,
-      reviewRemark TEXT
+      reviewRemark TEXT,
+      remark TEXT,
+      responsibleParty TEXT
     );
 
     CREATE TABLE IF NOT EXISTS batch_traces (

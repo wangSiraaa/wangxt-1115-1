@@ -22,6 +22,12 @@ router.get('/', async (req: Request, res: Response) => {
   res.json({ code: 0, data: settlements });
 });
 
+router.get('/trace/:allocationId', async (req: Request, res: Response) => {
+  const traces = await query('SELECT * FROM batch_traces WHERE allocationId = ? ORDER BY traceTime DESC', [req.params.allocationId]);
+  const allocation = await queryOne('SELECT * FROM allocations WHERE id = ?', [req.params.allocationId]);
+  res.json({ code: 0, data: { traces, allocation } });
+});
+
 router.get('/:id', async (req: Request, res: Response) => {
   const settlement = await queryOne('SELECT * FROM settlements WHERE id = ?', [req.params.id]) as any;
   if (!settlement) {
@@ -38,12 +44,6 @@ router.get('/:id', async (req: Request, res: Response) => {
     targetStore = await queryOne('SELECT * FROM stores WHERE id = ?', [(allocation as any).targetStoreId]);
   }
   res.json({ code: 0, data: { ...settlement, allocation, allocItems, segments, traces, sourceStore, targetStore } });
-});
-
-router.get('/trace/:allocationId', async (req: Request, res: Response) => {
-  const traces = await query('SELECT * FROM batch_traces WHERE allocationId = ? ORDER BY traceTime DESC', [req.params.allocationId]);
-  const allocation = await queryOne('SELECT * FROM allocations WHERE id = ?', [req.params.allocationId]);
-  res.json({ code: 0, data: { traces, allocation } });
 });
 
 router.post('/', async (req: Request, res: Response) => {
@@ -95,6 +95,7 @@ router.post('/', async (req: Request, res: Response) => {
         unitCost,
         unitPrice,
         amount,
+        segmentAmount: amount,
         reviewStatus: seg.segmentType === 'pending_review' ? (seg.reviewStatus || 'pending') : 'approved',
       });
     }
@@ -193,11 +194,12 @@ router.post('/', async (req: Request, res: Response) => {
 
     for (const seg of segments) {
       await run(
-        'INSERT INTO settle_segments (id, settlementId, allocationItemId, productId, productName, sku, batchNo, segmentType, quantity, unitCost, amount, unitPrice, reviewStatus, reviewerId, reviewerName, reviewTime, reviewRemark) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO settle_segments (id, settlementId, allocationItemId, productId, productName, sku, batchNo, segmentType, quantity, unitCost, amount, segmentAmount, unitPrice, reviewStatus, reviewerId, reviewerName, reviewTime, reviewRemark, remark, responsibleParty) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           generateId(), id, seg.allocationItemId, seg.productId, seg.productName, seg.sku, seg.batchNo,
-          seg.segmentType, seg.quantity, seg.unitCost, seg.amount, seg.unitPrice,
-          seg.reviewStatus, seg.reviewerId || null, seg.reviewerName || null, seg.reviewTime || null, seg.reviewRemark || ''
+          seg.segmentType, seg.quantity, seg.unitCost, seg.amount, seg.segmentAmount ?? seg.amount, seg.unitPrice,
+          seg.reviewStatus, seg.reviewerId || null, seg.reviewerName || null, seg.reviewTime || null, seg.reviewRemark || '',
+          seg.remark || '', seg.responsibleParty || ''
         ]
       );
     }
@@ -237,12 +239,13 @@ router.put('/:id', async (req: Request, res: Response) => {
         else if (seg.segmentType === 'pending_review') pendingAmount += amount;
 
         await run(
-          'INSERT INTO settle_segments (id, settlementId, allocationItemId, productId, productName, sku, batchNo, segmentType, quantity, unitCost, amount, unitPrice, reviewStatus, reviewerId, reviewerName, reviewTime, reviewRemark) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO settle_segments (id, settlementId, allocationItemId, productId, productName, sku, batchNo, segmentType, quantity, unitCost, amount, segmentAmount, unitPrice, reviewStatus, reviewerId, reviewerName, reviewTime, reviewRemark, remark, responsibleParty) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             generateId(), req.params.id, seg.allocationItemId, seg.productId, seg.productName, seg.sku, seg.batchNo,
-            seg.segmentType, qty, unitCost, amount, seg.unitPrice ?? 0,
+            seg.segmentType, qty, unitCost, amount, seg.segmentAmount ?? amount, seg.unitPrice ?? 0,
             seg.reviewStatus || (seg.segmentType === 'pending_review' ? 'pending' : 'approved'),
-            seg.reviewerId || null, seg.reviewerName || null, seg.reviewTime || null, seg.reviewRemark || ''
+            seg.reviewerId || null, seg.reviewerName || null, seg.reviewTime || null, seg.reviewRemark || '',
+            seg.remark || '', seg.responsibleParty || ''
           ]
         );
       }
@@ -339,7 +342,7 @@ router.post('/:id/review-segment', async (req: Request, res: Response) => {
 
     await run(
       'UPDATE settle_segments SET segmentType = ?, reviewStatus = ?, reviewerId = ?, reviewerName = ?, reviewTime = ?, reviewRemark = ? WHERE id = ?',
-      [newType, reviewStatus, reviewerId, reviewerName, now, reviewRemark || '', segmentId]
+      [newType, reviewStatus, reviewerId || null, reviewerName || null, now, reviewRemark || '', segmentId]
     );
 
     const segs = await query('SELECT * FROM settle_segments WHERE settlementId = ?', [req.params.id]) as any[];

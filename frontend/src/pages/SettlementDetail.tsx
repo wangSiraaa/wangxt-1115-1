@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Descriptions, Table, Tag, Space, Button, Typography, message, Divider, Card,
   Form, InputNumber, Input, Alert, Popconfirm, Statistic, Row, Col,
-  Tabs, Radio, Modal, Checkbox,
+  Tabs, Radio, Modal,
 } from 'antd';
 import {
   ArrowLeftOutlined, CheckOutlined, SaveOutlined, LockOutlined,
@@ -74,9 +74,9 @@ export default function SettlementDetail() {
   const lossSegments = useMemo(() => segments.filter(s => s.segmentType === 'loss'), [segments]);
   const pendingSegments = useMemo(() => segments.filter(s => s.segmentType === 'pending_review'), [segments]);
 
-  const sellableAmt = sellableSegments.reduce((s, i) => s + i.segmentAmount, 0);
-  const lossAmt = lossSegments.reduce((s, i) => s + i.segmentAmount, 0);
-  const pendingAmt = pendingSegments.reduce((s, i) => s + i.segmentAmount, 0);
+  const sellableAmt = sellableSegments.reduce((s, i) => s + (i.segmentAmount ?? i.amount), 0);
+  const lossAmt = lossSegments.reduce((s, i) => s + (i.segmentAmount ?? i.amount), 0);
+  const pendingAmt = pendingSegments.reduce((s, i) => s + (i.segmentAmount ?? i.amount), 0);
 
   const recalcFinal = (values: any) => {
     const total = values.totalCost || 0;
@@ -181,9 +181,9 @@ export default function SettlementDetail() {
       title: '金额',
       dataIndex: 'segmentAmount',
       width: 120,
-      render: (v: number) => <strong>¥{v.toFixed(2)}</strong>,
+      render: (v: number, r: SettleSegment) => <strong>¥{(v ?? r.amount ?? 0).toFixed(2)}</strong>,
     },
-    { title: '备注', dataIndex: 'remark', width: 200, render: (v: string) => v || '-' },
+    { title: '备注', dataIndex: 'reviewRemark', width: 200, render: (v: string) => v || '-' },
   ];
 
   const lossSegColumns = [
@@ -483,7 +483,7 @@ export default function SettlementDetail() {
                 label={
                   <Space>
                     损耗金额
-                    {lossLocked && <LockOutlined style={{ color: '#52c41a' }} />
+                    {lossLocked && <LockOutlined style={{ color: '#52c41a' }} />}
                   </Space>
                 }
                 name="lossAmount"
@@ -590,8 +590,8 @@ export default function SettlementDetail() {
               <Descriptions.Item label="商品名称">{reviewingSegment.productName}</Descriptions.Item>
               <Descriptions.Item label="批次号">{reviewingSegment.batchNo}</Descriptions.Item>
               <Descriptions.Item label="数量">{reviewingSegment.quantity}</Descriptions.Item>
-              <Descriptions.Item label="金额">¥{reviewingSegment.segmentAmount.toFixed(2)}</Descriptions.Item>
-              <Descriptions.Item label="原备注">{reviewingSegment.remark || '-'}</Descriptions.Item>
+              <Descriptions.Item label="金额">¥{(reviewingSegment.segmentAmount ?? reviewingSegment.amount ?? 0).toFixed(2)}</Descriptions.Item>
+              <Descriptions.Item label="原备注">{reviewingSegment.reviewRemark || reviewingSegment.remark || '-'}</Descriptions.Item>
             </Descriptions>
 
             <Form layout="vertical">

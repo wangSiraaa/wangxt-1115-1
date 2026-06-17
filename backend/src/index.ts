@@ -6,7 +6,6 @@ import baseRoutes from './routes/base';
 import expiryListRoutes from './routes/expiryList';
 import allocationRoutes from './routes/allocation';
 import settlementRoutes from './routes/settlement';
-import traceRoutes from './routes/trace';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -22,7 +21,6 @@ app.use('/api/base', baseRoutes);
 app.use('/api/expiry-lists', expiryListRoutes);
 app.use('/api/allocations', allocationRoutes);
 app.use('/api/settlements', settlementRoutes);
-app.use('/api/traces', traceRoutes);
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err);

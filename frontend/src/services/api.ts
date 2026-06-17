@@ -64,12 +64,15 @@ export const settlementApi = {
   confirm: (id: string) => request.post<any, Settlement>(`/api/settlements/${id}/confirm`),
   reviewSegment: (id: string, data: {
     segmentId: string;
-    reviewStatus: 'approved' | 'rejected';
-    reviewerId: string;
-    reviewerName: string;
-    reviewRemark?: string;
+    approved: boolean;
     convertTo?: 'sellable' | 'loss';
-  }) => request.post<any, Settlement>(`/api/settlements/${id}/review-segment`, data),
+    remark?: string;
+  }) => request.post<any, Settlement>(`/api/settlements/${id}/review-segment`, {
+    segmentId: data.segmentId,
+    reviewStatus: data.approved ? 'approved' : 'rejected',
+    convertTo: data.approved ? data.convertTo : undefined,
+    reviewRemark: data.remark || '',
+  }),
   getTrace: (allocationId: string) =>
     request.get<any, { traces: BatchTrace[]; allocation: Allocation }>(`/api/settlements/trace/${allocationId}`),
 };

@@ -206,7 +206,7 @@ router.put('/:id/status', async (req: Request, res: Response) => {
 });
 
 router.post('/:id/confirm-receive', async (req: Request, res: Response) => {
-  const { receiveItems, operatorId, operatorName } = req.body;
+  const { receiveItems } = req.body;
   const alloc = await queryOne('SELECT * FROM allocations WHERE id = ?', [req.params.id]) as any;
   if (!alloc) {
     return res.json({ code: 404, message: '调拨单不存在' });
@@ -214,8 +214,64 @@ router.post('/:id/confirm-receive', async (req: Request, res: Response) => {
   if (alloc.status !== 'shipped' && alloc.status !== 'pending') {
     return res.json({ code: 400, message: '当前状态不可签收' });
   }
-  req.body.status = 'received';
-  return router.handle({ method: 'PUT', url: `/${req.params.id}/status`, body: req.body } as any, res as any, () => {});
+  if (!receiveItems || !Array.isArray(receiveItems)) {
+    return res.json({ code: 400, message: '请录入签收明细' });
+  }
+
+  const now = dayjs().format('YYYY-MM-DD HH:mm:ss');
+  const allocItems = await query('SELECT * FROM allocation_items WHERE allocationId = ?', [req.params.id]) as any[];
+
+  try {
+    await transaction(async () => {
+      for (const item of allocItems) {
+        const receive = receiveItems.find((r: any) => r.id === item.id) || {};
+        const shippedQty = item.quantity;
+        const receivedQty = Number(receive.receivedQty ?? shippedQty);
+        const lossQty = Number(receive.lossQty ?? 0);
+        const pendingQty = Number(receive.pendingQty ?? 0);
+        const diffQty = shippedQty - receivedQty - lossQty - pendingQty;
+        const diffRemark = receive.diffRemark || '';
+
+        if (receivedQty < 0 || lossQty < 0 || pendingQty < 0) {
+          throw new Error(`商品「${item.productName}」数量不能为负数`);
+        }
+        if (receivedQty + lossQty + pendingQty > shippedQty) {
+          throw new Error(`商品「${item.productName}」实收+报损+待复核总量超过发货量`);
+        }
+
+        await run(
+          'UPDATE allocation_items SET receivedQty = ?, lossQty = ?, pendingQty = ?, diffQty = ?, diffRemark = ? WHERE id = ?',
+          [receivedQty, lossQty, pendingQty, diffQty, diffRemark, item.id]
+        );
+
+        if (receivedQty > 0) {
+          const listItem = await queryOne('SELECT * FROM expiry_list_items WHERE id = ?', [item.listItemId]) as any;
+          const originalBatch = await queryOne('SELECT * FROM inventory_batches WHERE id = ?', [listItem.batchId]) as any;
+          const newBatchId = generateId();
+          await run(
+            'INSERT INTO inventory_batches (id, productId, storeId, batchNo, quantity, productionDate, expiryDate, inboundDate, status, unitCost) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [newBatchId, item.productId, alloc.targetStoreId, item.batchNo + '-T', receivedQty, originalBatch.productionDate, originalBatch.expiryDate, dayjs().format('YYYY-MM-DD'), 'normal', item.unitCost]
+          );
+        }
+
+        const lossAmount = lossQty * item.unitCost;
+        const signDiff = diffQty;
+        const signDiffAmount = signDiff * item.unitCost;
+        await run(
+          'UPDATE batch_traces SET receivedQty = ?, lossQty = ?, pendingQty = ?, lossAmount = ?, signDiff = ?, signDiffAmount = ?, traceTime = ? WHERE allocationId = ? AND batchNo = ? AND productId = ?',
+          [receivedQty, lossQty, pendingQty, lossAmount, signDiff, signDiffAmount, now, req.params.id, item.batchNo, item.productId]
+        );
+      }
+
+      await run('UPDATE allocations SET status = ? WHERE id = ?', ['received', req.params.id]);
+      await run('UPDATE vehicles SET status = ? WHERE id = ?', ['available', alloc.vehicleId]);
+    });
+
+    const updated = await queryOne('SELECT * FROM allocations WHERE id = ?', [req.params.id]);
+    res.json({ code: 0, data: updated });
+  } catch (err: any) {
+    res.json({ code: 400, message: err.message || '签收失败' });
+  }
 });
 
 export default router;

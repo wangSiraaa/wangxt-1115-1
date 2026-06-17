@@ -113,6 +113,8 @@ export interface AllocationItem {
 
 export type SettleSegmentType = 'sellable' | 'loss' | 'pending_review';
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | 'converted';
+
 export interface SettleSegment {
   id: string;
   settlementId: string;
@@ -125,12 +127,15 @@ export interface SettleSegment {
   quantity: number;
   unitCost: number;
   amount: number;
+  segmentAmount: number;
   unitPrice: number;
-  reviewStatus: 'pending' | 'approved' | 'rejected';
+  reviewStatus: ReviewStatus;
   reviewerId: string;
   reviewerName: string;
   reviewTime: string;
   reviewRemark: string;
+  remark: string;
+  responsibleParty: string;
 }
 
 export interface BatchTrace {
@@ -167,11 +172,20 @@ export interface Settlement {
   lossAmount: number;
   finalAmount: number;
   lossRate: number;
+  sellableAmount: number;
+  pendingAmount: number;
+  lossLocked: number;
   accountantId: string;
   accountantName: string;
   settleTime: string;
   status: 'draft' | 'confirmed';
   remark: string;
+  allocation?: Allocation;
+  allocItems?: AllocationItem[];
+  segments?: SettleSegment[];
+  traces?: BatchTrace[];
+  sourceStore?: Store;
+  targetStore?: Store;
 }
 
 export type Role = 'store_manager' | 'warehouse' | 'finance';
