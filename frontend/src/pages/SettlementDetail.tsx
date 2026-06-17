@@ -30,7 +30,7 @@ export default function SettlementDetail() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [reviewingSegment, setReviewingSegment] = useState<SettleSegment | null>(null);
   const [reviewApproved, setReviewApproved] = useState<boolean | null>(null);
-  const [reviewConvertTo, setReviewConvertTo] = useState<SettleSegmentType>('sellable');
+  const [reviewConvertTo, setReviewConvertTo] = useState<'sellable' | 'loss'>('sellable');
   const [reviewRemark, setReviewRemark] = useState('');
   const [reviewing, setReviewing] = useState(false);
 

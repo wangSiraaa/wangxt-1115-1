@@ -3,11 +3,16 @@ import type { Database } from "sql.js";
 
 let inTx = false;
 
+function safeParams(params?: any[]): any[] {
+  if (!params) return [];
+  return params.map(p => (p === undefined ? null : p));
+}
+
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   const db = await getDb();
   const stmt = db.prepare(sql);
   const results: T[] = [];
-  stmt.bind(params || []);
+  stmt.bind(safeParams(params));
   while (stmt.step()) {
     results.push(stmt.getAsObject() as T);
   }
@@ -22,7 +27,7 @@ export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T 
 
 export async function run(sql: string, params?: any[]): Promise<void> {
   const db = await getDb();
-  db.run(sql, params || []);
+  db.run(sql, safeParams(params));
   if (inTx === false) {
     saveDb();
   }
@@ -31,7 +36,8 @@ export async function run(sql: string, params?: any[]): Promise<void> {
 export async function runNamed(sql: string, params: Record<string, any>): Promise<void> {
   const paramList: any[] = [];
   const convertedSql = sql.replace(/@(\w+)/g, (match, name) => {
-    paramList.push(params[name]);
+    const v = params[name];
+    paramList.push(v === undefined ? null : v);
     return "?";
   });
   await run(convertedSql, paramList);

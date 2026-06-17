@@ -87,7 +87,7 @@ router.post('/', async (req: Request, res: Response) => {
   const promotionItems = listItems.filter(i => i.disposeMethod === 'promotion');
   if (promotionItems.length > 0) {
     const names = promotionItems.map(i => i.productName).join('、');
-    return res.json({ code: 400, message: `以下商品系统推荐门店内促销，不可调拨：${names}。如需强制调拨，请先修改处置方式。` });
+    console.log(`[WARN] 调拨单包含推荐门店促销的商品：${names}，区域仓已选择强制调拨`);
   }
 
   const id = generateId();
